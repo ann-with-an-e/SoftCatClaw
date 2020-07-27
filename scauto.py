@@ -43,7 +43,7 @@ def dbProcessor(path):
 				"operatingSystem": "Android",
 				"priority": 0,
 				"source": "User Generated",
-				"type": "Database",
+				"type": "FILE",
 				"value": path
 		}
 
