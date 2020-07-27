@@ -6,7 +6,10 @@ import json
 dbpattern = re.compile(".*\.db$")
 
 def uploadToCon(name, data):
-
+	print("\n\nName: "+ str(name))
+	print("Data: "+ str(data))
+#TODO Add functionality to directly upload
+'''
 	cookies = {
 	'__VCAP_ID__': '75f031b9-1f98-4216-7339-1fc9',
 	'JSESSIONID': '540FBE77FAD9D39F154C5C099999CC46',
@@ -34,7 +37,7 @@ def uploadToCon(name, data):
 
 	print("["+json.dumps(data)+"]")
 	os.popen('curl -X POST "https://software-catalog-rest.cfapps.io/groups?merge=false" -H "accept: */*" -H "authorization: Bearer eyJ0eXAiOiJKV1QiLCJub25jZSI6Ik14eERYODgxUW9CZTZCRjBnSnRhbkpaVVpKM1kwRjYzVHBKdXUzLVlpLVEiLCJhbGciOiJSUzI1NiIsIng1dCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSIsImtpZCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSJ9.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83Y2MxMmQzOS01NTUyLTRiMjItODBiNi03MDI5NmNkZDMzMTIvIiwiaWF0IjoxNTg4MTkwNzY3LCJuYmYiOjE1ODgxOTA3NjcsImV4cCI6MTU4ODE5NDY2NywiYWNjdCI6MSwiYWNyIjoiMSIsImFpbyI6IkFVUUF1LzhQQUFBQUcwanNxRnB3Q1l4eTQ3UWVCdEprbjhoMnFBTGZtd2NzdGRGWkpqU3FYVDNycW1PWXpwdGMvUGpaTDF6QUpnQmJMVGg2SDBQaTgvWUNBd3VnUXFlN1VnPT0iLCJhbHRzZWNpZCI6IjE6bGl2ZS5jb206MDAwMzQwMDEyMkY3OEU5NiIsImFtciI6WyJwd2QiXSwiYXBwX2Rpc3BsYXluYW1lIjoiVHJlY25vYyAtIEF1dGhlbnRpY2F0aW9uIiwiYXBwaWQiOiJmZTkzNGZhZS0xYWJjLTRhNDItODAwNS00ZWM4YzllYmI4ODgiLCJhcHBpZGFjciI6IjAiLCJlbWFpbCI6ImEuZHVybmluZ0BvdXRsb29rLmNvbSIsImZhbWlseV9uYW1lIjoiRHVybmluZyIsImdpdmVuX25hbWUiOiJBbm5lIiwiaWRwIjoibGl2ZS5jb20iLCJpcGFkZHIiOiIyMTYuMTU0LjUuNjEiLCJuYW1lIjoiQW5uZSBEdXJuaW5nIiwib2lkIjoiZGY2OWRkZDctMGZjYy00MjkzLWIzZjYtOWY1YzU0ZDc3MjkwIiwicGxhdGYiOiI1IiwicHVpZCI6IjEwMDMyMDAwQTM2MzJBNkQiLCJyaCI6IjAuQVRZQU9TM0JmRkpWSWt1QXRuQXBiTjB6RXE1UGtfNjhHa0pLZ0FWT3lNbnJ1SWcyQUh3LiIsInNjcCI6IkRpcmVjdG9yeS5SZWFkLkFsbCBHcm91cC5SZWFkLkFsbCBvcGVuaWQgVXNlci5SZWFkIFVzZXIuUmVhZC5BbGwgcHJvZmlsZSBlbWFpbCIsInN1YiI6IkM5TTZTRlhlRC1YSmxRdFlsTWtpR081S0tFYjJKd0dJNVFwZEhHQXNLTFUiLCJ0aWQiOiI3Y2MxMmQzOS01NTUyLTRiMjItODBiNi03MDI5NmNkZDMzMTIiLCJ1bmlxdWVfbmFtZSI6ImxpdmUuY29tI2EuZHVybmluZ0BvdXRsb29rLmNvbSIsInV0aSI6ImVkMTJualNCcEUtSTltYmROR1NlQUEiLCJ2ZXIiOiIxLjAiLCJ4bXNfc3QiOnsic3ViIjoiLW1aVlF1Z2lOMTFQbWZ0cFdtaDFuY1Z3Rlc2czFZNjlBV0dJN2pJdm50YyJ9LCJ4bXNfdGNkdCI6MTU2MDI1OTIxM30.VLRKYJIiNsAqVM5rZhqn6nomLdXXpm1pf6yCI1FMxfsIbiBuwFEJKXe_zHwJeEglu0uAi6hZ31hTKEbdGTYCdc4vHIKm18m7TbLwW9u6VWzLMUYxR0oTR-1ocP5tBzyLvpIu5424hB88Qz27AAfqv7_P37R8NM0BgLCRmNL_DyjbDnHp9CeDQoYEaDb8t6UYrgD154ujQD5eEM7vQCFXm3zLE-t0ggzri7FjNIOuNm8PiAvUQDK5yMYwOgWdH9WyRxkSVCnBLwk1A0XagRStQ2ZHI7gnRQcn4lBKNuGAjq2-wGAOHfg2oltldM_3LeaMoKhbP1KsP7BCwl6gyfe00g" -H "Content-Type: application/json" -d "'+json.dumps(data).replace('"','\\"')+'"')
-
+'''
 def dbProcessor(path):
 	path = path.replace(' ','\ ')
 	result = {
@@ -72,8 +75,7 @@ def extractor():
 
 	#each element in pkgarray is an app name
 	pkgarray = os.popen("adb shell \"su -c 'pm list packages -f'\" ").read().splitlines()
-	#print(pkgarray)
-
+	print("Installed apps:" + str(pkgarray))
 
 	for pkg in pkgarray:
 		processedFiles = []
@@ -129,6 +131,6 @@ def extractor():
 	print(outputArray)
 #
 if __name__ == "__main__":
-		extractor()
+	extractor()
 
 
