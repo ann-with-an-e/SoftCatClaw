@@ -1,39 +1,101 @@
-import requests
 import os
 import re
 import json
+import logging
+import requests as rq
+from selenium import webdriver
+from selenium.common import exceptions
+import time
 
 dbpattern = re.compile(".*\.db$")
 
-def uploadToCon(name, data):
+'''
+Class containing the Selenium integration which executes JS to retrieve token
+'''
+class SessionStorage:
+
+	def __init__(self, driver):
+		self.driver = driver
+
+	def keys(self):
+		keys = self.driver.execute_script(
+				"var ls = window.sessionStorage, keys = []; "
+				"for (var i=0; i<ls.length; i++) " 
+				"    keys[i] = ls.key(i); " 
+				"return keys;")
+		print(keys)
+		return keys
+
+	def get(self, key):
+	   return self.driver.execute_script(f"return window.sessionStorage.getItem('{key}')")
+
+	def __getitem__(self, key):
+		if key in self.keys():
+			return self.get(key)
+		else:
+			raise KeyError(key)
+
+	def __len__(self):
+		return self.driver.execute_script("return window.sessionStorage.length;")
+
+'''
+Function for retrieving token via login with azure
+'''
+def login_azure(url='https://software-catalog.cfapps.io/groups', max_time=60):
+	token = None
+	try:
+		w = webdriver.Chrome()
+		w.get(url)
+		start_time = time.time()
+		elapsed_time = time.time() - start_time
+		while (w.current_url != url and elapsed_time <=max_time):
+			elapsed_time = time.time()- start_time
+			logging.info(f"Elapsed time: {elapsed_time}")
+			time.sleep(1)
+		session_store = SessionStorage(w)
+		token = session_store['access_token']
+
+	except KeyError as e:
+		logging.error("Access token could not be found")
+
+	except Exception as e:
+		logging.error(e)
+
+	#finally:
+		#w.close()
+
+	return token
+
+'''
+Function for uploading data to concert
+'''
+def uploadToCon(name, data, token):
+	print("\n\nName: "+ str(name))
+	print("Data: "+ json.dumps(data))
 
 	cookies = {
-	'__VCAP_ID__': '75f031b9-1f98-4216-7339-1fc9',
-	'JSESSIONID': '540FBE77FAD9D39F154C5C099999CC46',
+	    'X-Authorization': str(token),
 	}
 
 	headers = {
-	'Connection': 'keep-alive',
-	'Pragma': 'no-cache',
-	'Cache-Control': 'no-cache',
-	'accept': '*/*',
-	'authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJub25jZSI6Ik14eERYODgxUW9CZTZCRjBnSnRhbkpaVVpKM1kwRjYzVHBKdXUzLVlpLVEiLCJhbGciOiJSUzI1NiIsIng1dCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSIsImtpZCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSJ9.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83Y2MxMmQzOS01NTUyLTRiMjItODBiNi03MDI5NmNkZDMzMTIvIiwiaWF0IjoxNTg4MTkwNzY3LCJuYmYiOjE1ODgxOTA3NjcsImV4cCI6MTU4ODE5NDY2NywiYWNjdCI6MSwiYWNyIjoiMSIsImFpbyI6IkFVUUF1LzhQQUFBQUcwanNxRnB3Q1l4eTQ3UWVCdEprbjhoMnFBTGZtd2NzdGRGWkpqU3FYVDNycW1PWXpwdGMvUGpaTDF6QUpnQmJMVGg2SDBQaTgvWUNBd3VnUXFlN1VnPT0iLCJhbHRzZWNpZCI6IjE6bGl2ZS5jb206MDAwMzQwMDEyMkY3OEU5NiIsImFtciI6WyJwd2QiXSwiYXBwX2Rpc3BsYXluYW1lIjoiVHJlY25vYyAtIEF1dGhlbnRpY2F0aW9uIiwiYXBwaWQiOiJmZTkzNGZhZS0xYWJjLTRhNDItODAwNS00ZWM4YzllYmI4ODgiLCJhcHBpZGFjciI6IjAiLCJlbWFpbCI6ImEuZHVybmluZ0BvdXRsb29rLmNvbSIsImZhbWlseV9uYW1lIjoiRHVybmluZyIsImdpdmVuX25hbWUiOiJBbm5lIiwiaWRwIjoibGl2ZS5jb20iLCJpcGFkZHIiOiIyMTYuMTU0LjUuNjEiLCJuYW1lIjoiQW5uZSBEdXJuaW5nIiwib2lkIjoiZGY2OWRkZDctMGZjYy00MjkzLWIzZjYtOWY1YzU0ZDc3MjkwIiwicGxhdGYiOiI1IiwicHVpZCI6IjEwMDMyMDAwQTM2MzJBNkQiLCJyaCI6IjAuQVRZQU9TM0JmRkpWSWt1QXRuQXBiTjB6RXE1UGtfNjhHa0pLZ0FWT3lNbnJ1SWcyQUh3LiIsInNjcCI6IkRpcmVjdG9yeS5SZWFkLkFsbCBHcm91cC5SZWFkLkFsbCBvcGVuaWQgVXNlci5SZWFkIFVzZXIuUmVhZC5BbGwgcHJvZmlsZSBlbWFpbCIsInN1YiI6IkM5TTZTRlhlRC1YSmxRdFlsTWtpR081S0tFYjJKd0dJNVFwZEhHQXNLTFUiLCJ0aWQiOiI3Y2MxMmQzOS01NTUyLTRiMjItODBiNi03MDI5NmNkZDMzMTIiLCJ1bmlxdWVfbmFtZSI6ImxpdmUuY29tI2EuZHVybmluZ0BvdXRsb29rLmNvbSIsInV0aSI6ImVkMTJualNCcEUtSTltYmROR1NlQUEiLCJ2ZXIiOiIxLjAiLCJ4bXNfc3QiOnsic3ViIjoiLW1aVlF1Z2lOMTFQbWZ0cFdtaDFuY1Z3Rlc2czFZNjlBV0dJN2pJdm50YyJ9LCJ4bXNfdGNkdCI6MTU2MDI1OTIxM30.VLRKYJIiNsAqVM5rZhqn6nomLdXXpm1pf6yCI1FMxfsIbiBuwFEJKXe_zHwJeEglu0uAi6hZ31hTKEbdGTYCdc4vHIKm18m7TbLwW9u6VWzLMUYxR0oTR-1ocP5tBzyLvpIu5424hB88Qz27AAfqv7_P37R8NM0BgLCRmNL_DyjbDnHp9CeDQoYEaDb8t6UYrgD154ujQD5eEM7vQCFXm3zLE-t0ggzri7FjNIOuNm8PiAvUQDK5yMYwOgWdH9WyRxkSVCnBLwk1A0XagRStQ2ZHI7gnRQcn4lBKNuGAjq2-wGAOHfg2oltldM_3LeaMoKhbP1KsP7BCwl6gyfe00g',
-	'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36',
-	'Content-Type': 'application/json',
-	'Origin': 'https://software-catalog-rest.cfapps.io',
-	'Sec-Fetch-Site': 'same-origin',
-	'Sec-Fetch-Mode': 'cors',
-	'Sec-Fetch-Dest': 'empty',
-	'Referer': 'https://software-catalog-rest.cfapps.io/swagger-ui.html',
-	'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
+	    'Connection': 'keep-alive',
+	    'Accept': 'application/json, text/plain, */*',
+	    'User-Agent': 'SCAUTO',
+	    'Content-Type': 'application/json',
+	    'Origin': 'https://software-catalog-dev.cfapps.io',
+	    'Sec-Fetch-Site': 'same-origin',
+	    'Sec-Fetch-Mode': 'cors',
+	    'Sec-Fetch-Dest': 'empty',
+	    'Referer': 'https://software-catalog-dev.cfapps.io/groups',
+	    'Accept-Language': 'en-US,en;q=0.9',
+	    'Authorization': 'Bearer '+str(token),
 	}
 
-	params = (
-	('merge', 'false'),
-	)
+	data = '['+json.dumps(data)+']'
 
-	print("["+json.dumps(data)+"]")
-	os.popen('curl -X POST "https://software-catalog-rest.cfapps.io/groups?merge=false" -H "accept: */*" -H "authorization: Bearer eyJ0eXAiOiJKV1QiLCJub25jZSI6Ik14eERYODgxUW9CZTZCRjBnSnRhbkpaVVpKM1kwRjYzVHBKdXUzLVlpLVEiLCJhbGciOiJSUzI1NiIsIng1dCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSIsImtpZCI6IkN0VHVoTUptRDVNN0RMZHpEMnYyeDNRS1NSWSJ9.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC83Y2MxMmQzOS01NTUyLTRiMjItODBiNi03MDI5NmNkZDMzMTIvIiwiaWF0IjoxNTg4MTkwNzY3LCJuYmYiOjE1ODgxOTA3NjcsImV4cCI6MTU4ODE5NDY2NywiYWNjdCI6MSwiYWNyIjoiMSIsImFpbyI6IkFVUUF1LzhQQUFBQUcwanNxRnB3Q1l4eTQ3UWVCdEprbjhoMnFBTGZtd2NzdGRGWkpqU3FYVDNycW1PWXpwdGMvUGpaTDF6QUpnQmJMVGg2SDBQaTgvWUNBd3VnUXFlN1VnPT0iLCJhbHRzZWNpZCI6IjE6bGl2ZS5jb206MDAwMzQwMDEyMkY3OEU5NiIsImFtciI6WyJwd2QiXSwiYXBwX2Rpc3BsYXluYW1lIjoiVHJlY25vYyAtIEF1dGhlbnRpY2F0aW9uIiwiYXBwaWQiOiJmZTkzNGZhZS0xYWJjLTRhNDItODAwNS00ZWM4YzllYmI4ODgiLCJhcHBpZGFjciI6IjAiLCJlbWFpbCI6ImEuZHVybmluZ0BvdXRsb29rLmNvbSIsImZhbWlseV9uYW1lIjoiRHVybmluZyIsImdpdmVuX25hbWUiOiJBbm5lIiwiaWRwIjoibGl2ZS5jb20iLCJpcGFkZHIiOiIyMTYuMTU0LjUuNjEiLCJuYW1lIjoiQW5uZSBEdXJuaW5nIiwib2lkIjoiZGY2OWRkZDctMGZjYy00MjkzLWIzZjYtOWY1YzU0ZDc3MjkwIiwicGxhdGYiOiI1IiwicHVpZCI6IjEwMDMyMDAwQTM2MzJBNkQiLCJyaCI6IjAuQVRZQU9TM0JmRkpWSWt1QXRuQXBiTjB6RXE1UGtfNjhHa0pLZ0FWT3lNbnJ1SWcyQUh3LiIsInNjcCI6IkRpcmVjdG9yeS5SZWFkLkFsbCBHcm91cC5SZWFkLkFsbCBvcGVuaWQgVXNlci5SZWFkIFVzZXIuUmVhZC5BbGwgcHJvZmlsZSBlbWFpbCIsInN1YiI6IkM5TTZTRlhlRC1YSmxRdFlsTWtpR081S0tFYjJKd0dJNVFwZEhHQXNLTFUiLCJ0aWQiOiI3Y2MxMmQzOS01NTUyLTRiMjItODBiNi03MDI5NmNkZDMzMTIiLCJ1bmlxdWVfbmFtZSI6ImxpdmUuY29tI2EuZHVybmluZ0BvdXRsb29rLmNvbSIsInV0aSI6ImVkMTJualNCcEUtSTltYmROR1NlQUEiLCJ2ZXIiOiIxLjAiLCJ4bXNfc3QiOnsic3ViIjoiLW1aVlF1Z2lOMTFQbWZ0cFdtaDFuY1Z3Rlc2czFZNjlBV0dJN2pJdm50YyJ9LCJ4bXNfdGNkdCI6MTU2MDI1OTIxM30.VLRKYJIiNsAqVM5rZhqn6nomLdXXpm1pf6yCI1FMxfsIbiBuwFEJKXe_zHwJeEglu0uAi6hZ31hTKEbdGTYCdc4vHIKm18m7TbLwW9u6VWzLMUYxR0oTR-1ocP5tBzyLvpIu5424hB88Qz27AAfqv7_P37R8NM0BgLCRmNL_DyjbDnHp9CeDQoYEaDb8t6UYrgD154ujQD5eEM7vQCFXm3zLE-t0ggzri7FjNIOuNm8PiAvUQDK5yMYwOgWdH9WyRxkSVCnBLwk1A0XagRStQ2ZHI7gnRQcn4lBKNuGAjq2-wGAOHfg2oltldM_3LeaMoKhbP1KsP7BCwl6gyfe00g" -H "Content-Type: application/json" -d "'+json.dumps(data).replace('"','\\"')+'"')
+	response = rq.post('https://software-catalog-dev.cfapps.io/api/software-catalog/v1/groups', headers=headers, cookies=cookies, data=data)
+
+	print("\n\nUpload response code:"+str(response))
 
 def dbProcessor(path):
 	path = path.replace(' ','\ ')
@@ -43,7 +105,7 @@ def dbProcessor(path):
 				"operatingSystem": "Android",
 				"priority": 0,
 				"source": "User Generated",
-				"type": "Database",
+				"type": "FILE",
 				"value": path
 		}
 
@@ -67,13 +129,12 @@ def dbProcessor(path):
 	return result
 
 #
-def extractor():
+def extractor(token):
 	outputArray = []
 
 	#each element in pkgarray is an app name
 	pkgarray = os.popen("adb shell \"su -c 'pm list packages -f'\" ").read().splitlines()
-	#print(pkgarray)
-
+	print("Installed apps:" + str(pkgarray))
 
 	for pkg in pkgarray:
 		processedFiles = []
@@ -122,13 +183,15 @@ def extractor():
 			processedFiles.append(pkgfile)
 
 		if len(pkgOutput["entries"]) > 0:
-			uploadToCon(aptAppName, pkgOutput)
+			uploadToCon(aptAppName, pkgOutput, token)
 
 		outputArray.append(pkgOutput)
 
 	print(outputArray)
-#
+
 if __name__ == "__main__":
-		extractor()
+	token = login_azure(max_time=60)
+	print(f"Token: {token}")
+	extractor(token)
 
 
