@@ -97,6 +97,9 @@ def uploadToCon(name, data, token):
 
 	print("\n\nUpload response code:"+str(response))
 
+'''
+Function which acts as a module for parsing db files
+'''
 def dbProcessor(path):
 	path = path.replace(' ','\ ')
 	result = {
@@ -128,7 +131,9 @@ def dbProcessor(path):
 		print("OMG something broke")
 	return result
 
-#
+'''
+Function finds all installed applications and processes all their files with the various module functions (only dbProcessor at the moment)
+'''
 def extractor(token):
 	outputArray = []
 
@@ -193,5 +198,3 @@ if __name__ == "__main__":
 	token = login_azure(max_time=60)
 	print(f"Token: {token}")
 	extractor(token)
-
-
